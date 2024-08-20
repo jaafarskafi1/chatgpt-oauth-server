@@ -1,0 +1,32 @@
+{
+  "name": "chatgpt-server",
+  "scripts": {
+    "start": "ts-node api/index.ts",
+    "dev": "ts-node api/index.ts",
+    "build": "tsc && pnpm sentry:sourcemaps",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org sidekick-ct --project command-center-chatgpt-server ./dist && sentry-cli sourcemaps upload --org sidekick-ct --project command-center-chatgpt-server ./dist"
+  },
+  "author": "Jaafar Skafi",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.0.27",
+    "@sentry/cli": "^2.33.1",
+    "@sentry/integrations": "^7.114.0",
+    "@sentry/node": "^8.26.0",
+    "@sentry/profiling-node": "^8.26.0",
+    "@sentry/tracing": "^7.114.0",
+    "@vercel/postgres": "^0.9.0",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.33.0",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "node-cache": "^5.1.2"
+  }
+}

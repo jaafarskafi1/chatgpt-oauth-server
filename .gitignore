@@ -1,0 +1,21 @@
+node_modules/
+dist/
+# local env files
+.env*.local
+
+.env
+
+# misc
+.DS_Store
+*.pem
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+# Sentry Config File
+.sentryclirc
+
+db/openApiSpec.json
