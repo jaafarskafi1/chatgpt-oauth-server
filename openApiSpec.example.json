@@ -1,0 +1,611 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sidekick Task Management API",
+    "version": "1.0.0",
+    "description": "API for managing tasks and subtasks in The Sidekick App. This API allows users to create, read, update, and delete tasks, as well as organize them hierarchically with parent-child relationships."
+  },
+  "servers": [
+    {
+      "url": "https://api.thesidekickapp.ai",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/api/tasks": {
+      "get": {
+        "operationId": "getTopLevelTasks",
+        "summary": "Get Top-Level Tasks",
+        "description": "Retrieves all top-level tasks (tasks without a parent) for the authenticated user. Tasks are returned in descending order of creation date.",
+        "responses": {
+          "200": {
+            "description": "A list of top-level tasks successfully retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createTask",
+        "summary": "Create New Task",
+        "description": "Creates a new task for the authenticated user. The task can be a top-level task or a subtask of an existing task.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task successfully created. Returns the newly created task object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Invalid input data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tasks/{id}": {
+      "put": {
+        "operationId": "updateTask",
+        "summary": "Update Task",
+        "description": "Updates an existing task for the authenticated user. Only the fields provided in the request body will be updated.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The unique identifier of the task to be updated.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task successfully updated. Returns the updated task object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteTask",
+        "summary": "Delete Task",
+        "description": "Deletes a task and all its subtasks for the authenticated user. This operation is irreversible.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The unique identifier of the task to be deleted.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Task and its subtasks successfully deleted. No content is returned."
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found. The specified task ID does not exist or belong to the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tasks/search": {
+      "get": {
+        "operationId": "searchTasks",
+        "summary": "Search Tasks",
+        "description": "Searches tasks based on provided parameters for the authenticated user. Returns a list of tasks matching the search criteria.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search query to match against task descriptions"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["todo", "in_progress", "done"]
+            },
+            "description": "Filter by task status"
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "type": "string",
+              "enum": ["none", "low", "medium", "high"]
+            },
+            "description": "Filter by task priority"
+          },
+          {
+            "in": "query",
+            "name": "completed",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "description": "Filter by completion status. Pass 'true' or 'false' as a string."
+          },
+          {
+            "in": "query",
+            "name": "dueDate",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter by due date. Provide the date in ISO 8601 format (e.g., '2023-04-21T14:30:00Z')."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved tasks matching the search criteria.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tasks/{id}/subtasks": {
+      "get": {
+        "operationId": "getSubtasks",
+        "summary": "Get Subtasks",
+        "description": "Retrieves all immediate subtasks of a given task for the authenticated user. Does not return nested subtasks beyond the first level.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "The unique identifier of the parent task.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of subtasks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The provided token is invalid or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent task not found. The specified task ID does not exist or belong to the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred on the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Task": {
+        "type": "object",
+        "description": "Represents a task in the system.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the task."
+          },
+          "userId": {
+            "type": "string",
+            "description": "Identifier of the user who owns the task."
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the task."
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Indicates whether the task has been completed."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done"
+            ],
+            "description": "Current status of the task."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "Priority level of the task."
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Due date of the task in ISO 8601 format. Can be null if no due date is set."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the task was created, in ISO 8601 format."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the task was last updated, in ISO 8601 format."
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Identifier of the parent task. Null for top-level tasks."
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of identifiers of immediate child tasks."
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "description",
+          "completed",
+          "status",
+          "priority",
+          "createdAt",
+          "updatedAt",
+          "children"
+        ]
+      },
+      "NewTask": {
+        "type": "object",
+        "description": "Represents the data required to create a new task.",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the new task."
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Indicates whether the new task is already completed."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done"
+            ],
+            "description": "Initial status of the new task."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "Priority level of the new task."
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Due date of the new task in ISO 8601 format. Can be null if no due date is set."
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Identifier of the parent task. Null for top-level tasks."
+          },
+          "userId": {
+            "type": "string",
+            "description": "ID of the user creating the task. This is typically set by the server based on the authenticated user."
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "TaskUpdate": {
+        "type": "object",
+        "description": "Represents the data that can be updated for an existing task.",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Updated description of the task."
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Updated completion status of the task."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done"
+            ],
+            "description": "Updated status of the task."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "Updated priority level of the task."
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Updated due date of the task in ISO 8601 format. Can be null to remove the due date."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "description": "Represents an error response from the API.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A human-readable error message describing the problem."
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "JWT token-based authentication. The token should be included in the Authorization header as 'Bearer <token>'."
+      }
+    }
+  }
+}
