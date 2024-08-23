@@ -121,74 +121,53 @@ export async function updateTask(id: TaskSelect['id'], updates: TaskUpdate, user
   });
 }
 
-export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<{ deletedIds: TaskSelect['id'][], updatedParent: Task | null }> {
+export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<void> {
   console.log(`Deleting task with id: ${id} for user: ${userId}`);
   if (!userId) throw new Error('Unauthorized');
 
-  const descendantIds = await getDescendantTaskIds(id, userId);
-  console.log(`Descendant task ids: ${descendantIds}`);
-  const allTaskIds = [id, ...descendantIds];
-  console.log(`All task ids to be deleted: ${allTaskIds}`);
-
   return await db.transaction(async (tx) => {
     console.log('Starting delete transaction');
-    // Get the parent task before deletion
-    const [parentRelation] = await tx
-      .select()
-      .from(taskRelationships)
-      .where(eq(taskRelationships.childTaskId, id));
-    console.log(`Parent relation: ${JSON.stringify(parentRelation)}`);
 
-    // Delete all relationships
-    const deletedRelationships = await tx
-      .delete(taskRelationships)
-      .where(
-        or(
-          inArray(taskRelationships.parentTaskId, allTaskIds),
-          inArray(taskRelationships.childTaskId, allTaskIds)
-        )
-      );
-    console.log(`Deleted ${deletedRelationships.rowCount} relationships`);
-
-    // Delete all tasks
-    const deletedTasks = await tx
-      .delete(tasks)
-      .where(
-        and(
-          inArray(tasks.id, allTaskIds),
-          eq(tasks.userId, userId)
-        )
-      );
-    console.log(`Deleted ${deletedTasks.rowCount} tasks`);
-
-    let updatedParent: Task | null = null;
-    if (parentRelation?.parentTaskId) {
-      console.log(`Updating parent task: ${parentRelation.parentTaskId}`);
-      // Update the parent task
-      const [parent] = await tx
+    // Function to recursively delete tasks and their children
+    async function deleteTaskAndChildren(taskId: TaskSelect['id']): Promise<void> {
+      // Get child tasks
+      const childRelations = await tx
         .select()
-        .from(tasks)
-        .where(eq(tasks.id, parentRelation.parentTaskId));
+        .from(taskRelationships)
+        .where(eq(taskRelationships.parentTaskId, taskId));
 
-      if (parent) {
-        console.log(`Found parent task: ${JSON.stringify(parent)}`);
-        const updatedChildren = await tx
-          .select({ childId: taskRelationships.childTaskId })
-          .from(taskRelationships)
-          .where(eq(taskRelationships.parentTaskId, parent.id));
-        console.log(`Updated children: ${JSON.stringify(updatedChildren)}`);
+      console.log(`Found ${childRelations.length} child relations for task ${taskId}`);
 
-        updatedParent = {
-          ...parent,
-          children: updatedChildren.map(child => child.childId),
-          parentId: null // We don't know the parent's parent here, so we set it to null
-        };
-        console.log(`Updated parent: ${JSON.stringify(updatedParent)}`);
+      // Recursively delete child tasks
+      for (const relation of childRelations) {
+        await deleteTaskAndChildren(relation.childTaskId);
+      }
+
+      // Delete relationships for this task
+      const deletedRelationships = await tx
+        .delete(taskRelationships)
+        .where(or(
+          eq(taskRelationships.parentTaskId, taskId),
+          eq(taskRelationships.childTaskId, taskId)
+        ));
+      console.log(`Deleted ${deletedRelationships.rowCount} relationships for task ${taskId}`);
+
+      // Delete the task itself
+      const { rowCount } = await tx
+        .delete(tasks)
+        .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+      
+      if (rowCount === 0) {
+        console.log(`Warning: Task ${taskId} not found or not deleted`);
+      } else {
+        console.log(`Deleted task ${taskId}`);
       }
     }
 
+    // Start the recursive deletion from the top-level task
+    await deleteTaskAndChildren(id);
+
     console.log('Delete transaction completed');
-    return { deletedIds: allTaskIds, updatedParent };
   });
 }
 
