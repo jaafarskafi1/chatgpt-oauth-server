@@ -122,12 +122,9 @@ export async function updateTask(id: TaskSelect['id'], updates: TaskUpdate, user
 }
 
 export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<void> {
-  console.log(`Deleting task with id: ${id} for user: ${userId}`);
   if (!userId) throw new Error('Unauthorized');
 
   return await db.transaction(async (tx) => {
-    console.log('Starting delete transaction');
-
     // Function to recursively delete tasks and their children
     async function deleteTaskAndChildren(taskId: TaskSelect['id']): Promise<void> {
       // Get child tasks
@@ -136,73 +133,28 @@ export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<
         .from(taskRelationships)
         .where(eq(taskRelationships.parentTaskId, taskId));
 
-      console.log(`Found ${childRelations.length} child relations for task ${taskId}`);
-
       // Recursively delete child tasks
       for (const relation of childRelations) {
         await deleteTaskAndChildren(relation.childTaskId);
       }
 
       // Delete relationships for this task
-      const deletedRelationships = await tx
+      await tx
         .delete(taskRelationships)
         .where(or(
           eq(taskRelationships.parentTaskId, taskId),
           eq(taskRelationships.childTaskId, taskId)
         ));
-      console.log(`Deleted ${deletedRelationships.rowCount} relationships for task ${taskId}`);
 
       // Delete the task itself
-      const { rowCount } = await tx
+      await tx
         .delete(tasks)
         .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
-      
-      if (rowCount === 0) {
-        console.log(`Warning: Task ${taskId} not found or not deleted`);
-      } else {
-        console.log(`Deleted task ${taskId}`);
-      }
     }
 
     // Start the recursive deletion from the top-level task
     await deleteTaskAndChildren(id);
-
-    console.log('Delete transaction completed');
   });
-}
-
-async function getDescendantTaskIds(taskId: TaskSelect['id'], userId: string): Promise<TaskSelect['id'][]> {
-  if (!userId) throw new Error('Unauthorized');
-
-  const allTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.userId, userId))
-    .execute();
-
-  const relationships = await db
-    .select()
-    .from(taskRelationships)
-    .execute();
-
-  const taskMap = new Map(allTasks.map(task => [task.id, { ...task, children: [] as string[] }]));
-
-  relationships.forEach(rel => {
-    if (rel.parentTaskId) {  // Check if parentTaskId is not null
-      const parentTask = taskMap.get(rel.parentTaskId);
-      if (parentTask) {
-        parentTask.children.push(rel.childTaskId);
-      }
-    }
-  });
-
-  function collectDescendants(id: TaskSelect['id']): TaskSelect['id'][] {
-    const task = taskMap.get(id);
-    if (!task) return [];
-    return [id, ...task.children.flatMap(collectDescendants)];
-  }
-
-  return collectDescendants(taskId).filter(id => id !== taskId);
 }
 
 
