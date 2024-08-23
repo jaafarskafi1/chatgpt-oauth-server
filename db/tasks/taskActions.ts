@@ -122,20 +122,25 @@ export async function updateTask(id: TaskSelect['id'], updates: TaskUpdate, user
 }
 
 export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<{ deletedIds: TaskSelect['id'][], updatedParent: Task | null }> {
+  console.log(`Deleting task with id: ${id} for user: ${userId}`);
   if (!userId) throw new Error('Unauthorized');
 
   const descendantIds = await getDescendantTaskIds(id, userId);
+  console.log(`Descendant task ids: ${descendantIds}`);
   const allTaskIds = [id, ...descendantIds];
+  console.log(`All task ids to be deleted: ${allTaskIds}`);
 
   return await db.transaction(async (tx) => {
+    console.log('Starting delete transaction');
     // Get the parent task before deletion
     const [parentRelation] = await tx
       .select()
       .from(taskRelationships)
       .where(eq(taskRelationships.childTaskId, id));
+    console.log(`Parent relation: ${JSON.stringify(parentRelation)}`);
 
     // Delete all relationships
-    await tx
+    const deletedRelationships = await tx
       .delete(taskRelationships)
       .where(
         or(
@@ -143,9 +148,10 @@ export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<
           inArray(taskRelationships.childTaskId, allTaskIds)
         )
       );
+    console.log(`Deleted ${deletedRelationships.rowCount} relationships`);
 
     // Delete all tasks
-    await tx
+    const deletedTasks = await tx
       .delete(tasks)
       .where(
         and(
@@ -153,9 +159,11 @@ export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<
           eq(tasks.userId, userId)
         )
       );
+    console.log(`Deleted ${deletedTasks.rowCount} tasks`);
 
     let updatedParent: Task | null = null;
     if (parentRelation?.parentTaskId) {
+      console.log(`Updating parent task: ${parentRelation.parentTaskId}`);
       // Update the parent task
       const [parent] = await tx
         .select()
@@ -163,19 +171,23 @@ export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<
         .where(eq(tasks.id, parentRelation.parentTaskId));
 
       if (parent) {
+        console.log(`Found parent task: ${JSON.stringify(parent)}`);
         const updatedChildren = await tx
           .select({ childId: taskRelationships.childTaskId })
           .from(taskRelationships)
           .where(eq(taskRelationships.parentTaskId, parent.id));
+        console.log(`Updated children: ${JSON.stringify(updatedChildren)}`);
 
         updatedParent = {
           ...parent,
           children: updatedChildren.map(child => child.childId),
           parentId: null // We don't know the parent's parent here, so we set it to null
         };
+        console.log(`Updated parent: ${JSON.stringify(updatedParent)}`);
       }
     }
 
+    console.log('Delete transaction completed');
     return { deletedIds: allTaskIds, updatedParent };
   });
 }
