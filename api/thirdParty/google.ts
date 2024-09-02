@@ -32,8 +32,21 @@ export async function getGoogleCalendarEvents(user_id: string, bearerToken: stri
       headers: { Authorization: `Bearer ${googleToken}` },
     });
 
+    console.log('response', response)
+    console.log('googleToken', googleToken)
+
     if (!response.ok) throw new Error('Failed to fetch Google Calendar events');
-    const data = await response.json() as { items: GoogleCalendarEvent[] };
+    const responseText = await response.text(); // Get the raw response text
+    console.log('Raw response:', responseText); // Log the raw response
+    let data;
+    try {
+      data = JSON.parse(responseText) as { items: GoogleCalendarEvent[] };
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError);
+      console.error('Problematic JSON string:', responseText);
+      throw new Error('Invalid JSON response from Google Calendar API');
+    }
+    console.log('data', data)
     return data.items;
   } catch (error) {
     console.error("Error fetching Google Calendar events:", error);
