@@ -19,8 +19,9 @@ export async function getGoogleCalendarEvents(user_id: string, bearerToken: stri
   });
 
   const googleAuthInfo = await response.json() as { data: { token: string }[] };
-
+  console.log('googleAuthInfo', googleAuthInfo)
   const googleToken = googleAuthInfo.data[0]?.token
+  console.log('googleToken', googleToken)
   try {
     // const token = await getGoogleTokenForUser(userId);
     const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${new URLSearchParams({
@@ -28,12 +29,9 @@ export async function getGoogleCalendarEvents(user_id: string, bearerToken: stri
       maxResults: '10',
       singleEvents: 'true',
       orderBy: 'startTime',
-    }).toString()}`, {
+    })}`, {
       headers: { Authorization: `Bearer ${googleToken}` },
     });
-
-    console.log('response', response)
-    console.log('googleToken', googleToken)
 
     if (!response.ok) throw new Error('Failed to fetch Google Calendar events');
     const responseText = await response.text(); // Get the raw response text
