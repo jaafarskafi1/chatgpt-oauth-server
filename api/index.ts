@@ -328,6 +328,7 @@ app.get(
       return;
     }
     try {
+      console.log('req.user', req.user)
       const calendarEvents = await getGoogleCalendarEvents(req.user.user_id, req.user.access_token);
       res.json(calendarEvents);
     } catch (error) {
