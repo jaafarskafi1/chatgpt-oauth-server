@@ -16,9 +16,9 @@ export async function getGoogleCalendarEvents(user_id: string, bearerToken: stri
 
   console.log('response', response)
 
-  const googleAuthInfo = await response.json() as { data: { token: string }[] };
+  const googleAuthInfo = await response.json() as { token: string }[];
   console.log('googleAuthInfo', googleAuthInfo)
-  const googleToken = googleAuthInfo.data[0]?.token
+  const googleToken = googleAuthInfo[0].token
   console.log('googleToken', googleToken)
   try {
     const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${new URLSearchParams({
