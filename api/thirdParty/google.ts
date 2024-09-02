@@ -11,7 +11,7 @@ export async function getGoogleCalendarEvents(user_id: string, bearerToken: stri
   console.log('user_id', user_id)
 
   const response = await fetch(`https://api.clerk.com/v1/users/${user_id}/oauth_access_tokens/${provider}`, {
-    headers: { Authorization: `Bearer ${bearerToken}` },
+    headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
   });
 
   console.log('response', response)
