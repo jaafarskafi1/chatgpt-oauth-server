@@ -7,14 +7,10 @@ interface GoogleCalendarEvent {
 }
 
 export async function getGoogleCalendarEvents(user_id: string, bearerToken: string) {
-  const clerkBaseUrl = process.env.CLERK_BASE_URL;
-  if (!clerkBaseUrl) {
-    throw new Error('CLERK_BASE_URL is not defined in environment variables');
-  }
-
   const provider = "oauth_google"
+  console.log('user_id', user_id)
 
-  const response = await fetch(`${clerkBaseUrl}/oauth/users/${user_id}/oauth_access_tokens/${provider}`, {
+  const response = await fetch(`https://api.clerk.com/v1/users/${user_id}/oauth_access_tokens/${provider}`, {
     headers: { Authorization: `Bearer ${bearerToken}` },
   });
 
