@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { and, desc, eq, ilike, inArray, or } from 'drizzle-orm';
-import { tasks, taskRelationships, type Task, type TaskSelect, type TaskRelationshipSelect, NewTask, TaskUpdate, TaskSearchParams, TaskNode } from '../schema';
+import { tasks, taskRelationships, type Task, type TaskSelect, NewTask, TaskUpdate, TaskSearchParams } from '../schema';
 
 export async function getTopLevelTasks(userId: string): Promise<Task[]> {
   if (!userId) throw new Error('Unauthorized');

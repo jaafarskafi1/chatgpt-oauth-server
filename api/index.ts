@@ -11,11 +11,12 @@ import {
   getSubtasks
 } from "../db/tasks/taskActions";
 import { NewTask, TaskUpdate, TaskSearchParams } from "../db/schema";
-
+import { getGoogleCalendarEvents } from "../api/thirdParty/google";
 const app = express();
 interface Request extends ExpressRequest {
   user?: {
     user_id: string;
+    access_token: string;
   };
 }
 
@@ -297,12 +298,51 @@ app.get(
   }
 );
 
-const port = process.env.PORT || 3000;
+/**
+ * @api {get} /api/calendar/events Get Google Calendar Events
+ * @apiName GetGoogleCalendarEvents
+ * @apiGroup Calendar
+ * @apiDescription Retrieves Google Calendar events for the authenticated user.
+ * 
+ * @apiHeader {String} Authorization Bearer token for user authentication.
+ * 
+ * @apiSuccess {Object[]} events List of calendar events.
+ * @apiSuccess {String} events.id Unique identifier of the event.
+ * @apiSuccess {String} events.summary Event summary or title.
+ * @apiSuccess {Object} events.start Event start time information.
+ * @apiSuccess {String} events.start.dateTime Start date and time of the event (ISO 8601 format).
+ * @apiSuccess {String} events.start.timeZone Time zone of the start time.
+ * @apiSuccess {Object} events.end Event end time information.
+ * @apiSuccess {String} events.end.dateTime End date and time of the event (ISO 8601 format).
+ * @apiSuccess {String} events.end.timeZone Time zone of the end time.
+ * 
+ * @apiError (401) {Object} Unauthorized Authentication failed.
+ * @apiError (500) {Object} InternalServerError Failed to fetch calendar events.
+ */
+app.get(
+  "/api/calendar/events",
+  [authenticateToken],
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const calendarEvents = await getGoogleCalendarEvents(req.user.user_id, req.user.access_token);
+      res.json(calendarEvents);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  }
+);
+
+const port = process.env.PORT || 3001;
 
 app.listen(port, () => {
   console.log(`
     🚀 Server ready at: http://localhost:${port}
-    ⭐️ See sample requests: http://pris.ly/e/ts/rest-express#3-using-the-rest-api`);
+  `);
 });
 
 module.exports = app;
