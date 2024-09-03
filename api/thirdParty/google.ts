@@ -6,7 +6,7 @@ interface GoogleCalendarEvent {
   // Add other relevant fields as needed
 }
 
-export async function getGoogleCalendarEvents(user_id: string, bearerToken: string) {
+export async function getGoogleCalendarEvents(user_id: string) {
   const provider = "oauth_google"
 
   const response = await fetch(`https://api.clerk.com/v1/users/${user_id}/oauth_access_tokens/${provider}`, {

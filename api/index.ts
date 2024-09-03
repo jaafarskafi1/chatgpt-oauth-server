@@ -16,7 +16,6 @@ const app = express();
 interface Request extends ExpressRequest {
   user?: {
     user_id: string;
-    access_token: string;
   };
 }
 
@@ -328,7 +327,7 @@ app.get(
       return;
     }
     try {
-      const calendarEvents = await getGoogleCalendarEvents(req.user.user_id, req.user.access_token);
+      const calendarEvents = await getGoogleCalendarEvents(req.user.user_id);
       res.json(calendarEvents);
     } catch (error) {
       console.error("Error fetching calendar events:", error);

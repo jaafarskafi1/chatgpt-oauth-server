@@ -4,7 +4,6 @@ import { NextFunction, Request as ExpressRequest, Response } from 'express';
 interface AuthenticatedRequest extends ExpressRequest {
   user?: {
     user_id: string;
-    access_token: string; // Add this line
   };
 }
 
@@ -25,7 +24,7 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
   const bearerToken = authHeader.split(' ')[1];
   const cachedUser = tokenCache.get<ClerkUser>(bearerToken);
   if (cachedUser && cachedUser.user_id) {
-    req.user = { user_id: cachedUser.user_id, access_token: bearerToken };
+    req.user = { user_id: cachedUser.user_id };
     next();
     return;
   }
@@ -33,7 +32,7 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
   try {
     const clerkUser = await fetchClerkUser(bearerToken);
     tokenCache.set(bearerToken, clerkUser);
-    req.user = { user_id: clerkUser.user_id, access_token: bearerToken };
+    req.user = { user_id: clerkUser.user_id };
     next();
   } catch (error) {
     console.error('Error authenticating token:', error);
