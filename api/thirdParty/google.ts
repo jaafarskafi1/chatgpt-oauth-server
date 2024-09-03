@@ -8,18 +8,14 @@ interface GoogleCalendarEvent {
 
 export async function getGoogleCalendarEvents(user_id: string, bearerToken: string) {
   const provider = "oauth_google"
-  console.log('user_id', user_id)
 
   const response = await fetch(`https://api.clerk.com/v1/users/${user_id}/oauth_access_tokens/${provider}`, {
     headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
   });
 
-  console.log('response', response)
-
   const googleAuthInfo = await response.json() as { token: string }[];
-  console.log('googleAuthInfo', googleAuthInfo)
   const googleToken = googleAuthInfo[0].token
-  console.log('googleToken', googleToken)
+
   try {
     const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${new URLSearchParams({
       timeMin: new Date().toISOString(),
