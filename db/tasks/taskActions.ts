@@ -1,6 +1,7 @@
 import { db } from '../index';
 import { and, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { tasks, taskRelationships, type Task, type TaskSelect, NewTask, TaskUpdate, TaskSearchParams } from '../schema';
+import { parseDueDate } from '../../utils/Date';
 
 export async function getTopLevelTasks(userId: string): Promise<Task[]> {
   if (!userId) throw new Error('Unauthorized');
@@ -54,18 +55,20 @@ export async function getTopLevelTasks(userId: string): Promise<Task[]> {
 export async function createTask(newTask: NewTask, userId: string): Promise<Task> {
   if (!userId) throw new Error('Unauthorized');
 
-  // Ensure the userId from the auth matches the one in newTask
   if (newTask.userId !== userId) throw new Error('Unauthorized: User ID mismatch');
 
   try {
-    // Insert the task into the database
-    const [insertedTask] = await db.insert(tasks).values(newTask).returning();
+    const formattedTask = {
+      ...newTask,
+      dueDate: parseDueDate(newTask.dueDate),
+    };
+
+    const [insertedTask] = await db.insert(tasks).values(formattedTask).returning();
 
     if (!insertedTask) {
       throw new Error('Failed to insert task');
     }
 
-    // Handle parent-child relationship if parentId is provided
     if (newTask.parentId) {
       const result = await db.insert(taskRelationships).values({
         parentTaskId: newTask.parentId,
@@ -77,7 +80,6 @@ export async function createTask(newTask: NewTask, userId: string): Promise<Task
       }
     }
 
-    // Return the created task
     return {
       ...insertedTask,
       parentId: newTask.parentId ?? null,
@@ -93,10 +95,14 @@ export async function updateTask(id: TaskSelect['id'], updates: TaskUpdate, user
   if (!userId) throw new Error('Unauthorized');
 
   return await db.transaction(async (tx) => {
-    // Ensure the task belongs to the authenticated user and update it
+    const formattedUpdates = {
+      ...updates,
+      dueDate: updates.dueDate ? parseDueDate(updates.dueDate) : undefined,
+    };
+
     const [updatedTask] = await tx
       .update(tasks)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(formattedUpdates)
       .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
       .returning();
 
@@ -156,7 +162,6 @@ export async function deleteTask(id: TaskSelect['id'], userId: string): Promise<
     await deleteTaskAndChildren(id);
   });
 }
-
 
 export async function moveTask(taskId: TaskSelect['id'], newParentId: TaskSelect['id'] | null, userId: string): Promise<void> {
   if (!userId) throw new Error('Unauthorized');
