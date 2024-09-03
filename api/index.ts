@@ -11,7 +11,7 @@ import {
   getSubtasks
 } from "../db/tasks/taskActions";
 import { NewTask, TaskUpdate, TaskSearchParams } from "../db/schema";
-import { getGoogleCalendarEvents } from "../api/thirdParty/google";
+import { getGmailMessages, getGoogleCalendarEvents } from "../api/thirdParty/google";
 const app = express();
 interface Request extends ExpressRequest {
   user?: {
@@ -332,6 +332,24 @@ app.get(
     } catch (error) {
       console.error("Error fetching calendar events:", error);
       res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  }
+);
+
+app.get(
+  "/api/gmail/messages",
+  [authenticateToken],
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const messages = await getGmailMessages(req.user.user_id);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching Gmail messages:", error);
+      res.status(500).json({ error: "Failed to fetch Gmail messages" });
     }
   }
 );
